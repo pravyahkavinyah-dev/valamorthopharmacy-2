@@ -44,7 +44,7 @@ def verify_token(handler):
         return None
     token = auth[7:]
     try:
-        return jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
+        return jwt.decode(token, JWT_SECRET, algorithms=["HS256"], options={"verify_aud": False})
     except Exception:
         return None
 
