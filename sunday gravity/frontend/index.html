@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PharmaPOS — Modern Pharmacy Point of Sale</title>
+<meta name="description" content="Modern Pharmacy POS with billing, inventory, and analytics">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- ============ AUTH SCREEN ============ -->
+<div id="auth-screen" class="auth-screen">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <svg width="48" height="48" viewBox="0 0 48 48" fill="none"><rect width="48" height="48" rx="12" fill="url(#g1)"/><path d="M16 20h16v2H16zm0 6h10v2H16zm24-2a4 4 0 01-4 4h-2v6l-4-4H18a4 4 0 01-4-4v-8a4 4 0 014-4h16a4 4 0 014 4v4z" fill="#fff" opacity=".9"/><defs><linearGradient id="g1" x1="0" y1="0" x2="48" y2="48"><stop stop-color="#6366f1"/><stop offset="1" stop-color="#8b5cf6"/></linearGradient></defs></svg>
+      <h1>PharmaPOS</h1>
+      <p>Pharmacy Management System</p>
+    </div>
+    <div id="auth-login">
+      <div class="form-group"><label for="auth-email">Email</label><input type="email" id="auth-email" placeholder="you@pharmacy.com" required></div>
+      <div class="form-group"><label for="auth-pass">Password</label><input type="password" id="auth-pass" placeholder="••••••••" required></div>
+      <button id="btn-login" class="btn btn-primary btn-full" onclick="handleLogin()">Sign In</button>
+      <p class="auth-hint">Demo: admin@pharmacy.com / admin123</p>
+    </div>
+    <div id="auth-2fa" class="hidden">
+      <p class="tfa-label">Enter 6-digit code from Google Authenticator</p>
+      <div class="otp-inputs" id="otp-inputs"></div>
+      <button id="btn-verify" class="btn btn-primary btn-full" onclick="verify2FA()">Verify</button>
+    </div>
+    <div id="auth-error" class="auth-error hidden"></div>
+  </div>
+</div>
+
+<!-- ============ MAIN APP ============ -->
+<div id="app" class="app hidden">
+
+  <!-- SIDEBAR -->
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-brand">
+      <svg width="32" height="32" viewBox="0 0 48 48" fill="none"><rect width="48" height="48" rx="12" fill="url(#g1)"/><path d="M16 20h16v2H16zm0 6h10v2H16z" fill="#fff" opacity=".9"/></svg>
+      <span>PharmaPOS</span>
+    </div>
+    <ul class="nav-links">
+      <li><a href="#" class="nav-link active" data-page="dashboard" onclick="navigate('dashboard')"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><span>Dashboard</span></a></li>
+      <li><a href="#" class="nav-link" data-page="sales" onclick="navigate('sales')"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 01-8 0"/></svg><span>Sales</span></a></li>
+      <li><a href="#" class="nav-link" data-page="purchase" onclick="navigate('purchase')"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><path d="M3.27 6.96L12 12.01l8.73-5.05M12 22.08V12"/></svg><span>Purchase</span></a></li>
+      <li><a href="#" class="nav-link" data-page="inventory" onclick="navigate('inventory')"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg><span>Inventory</span></a></li>
+      <li><a href="#" class="nav-link" data-page="shortbook" onclick="navigate('shortbook')"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M16 13H8m8 4H8m2-8H8"/></svg><span>Short Book</span></a></li>
+      <li><a href="#" class="nav-link" data-page="reports" onclick="navigate('reports')"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg><span>Reports</span></a></li>
+    </ul>
+    <div class="sidebar-footer">
+      <button class="btn-icon" onclick="handleLogout()" title="Logout"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg></button>
+    </div>
+  </nav>
+
+  <!-- MAIN CONTENT -->
+  <main class="main-content" id="main-content">
+    <!-- Top bar -->
+    <header class="topbar">
+      <button class="btn-icon hamburger" onclick="toggleSidebar()"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg></button>
+      <h2 id="page-title">Dashboard</h2>
+      <div class="topbar-right">
+        <span class="today-date" id="today-date"></span>
+        <div class="avatar" title="Admin">A</div>
+      </div>
+    </header>
+
+    <!-- PAGE: DASHBOARD -->
+    <section id="page-dashboard" class="page active">
+      <div class="stats-grid">
+        <div class="stat-card stat-sales"><div class="stat-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></div><div class="stat-info"><span class="stat-label">Today's Sales</span><span class="stat-value" id="stat-today-sales">₹0</span></div></div>
+        <div class="stat-card stat-orders"><div class="stat-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><path d="M3 6h18"/></svg></div><div class="stat-info"><span class="stat-label">Bills Today</span><span class="stat-value" id="stat-today-bills">0</span></div></div>
+        <div class="stat-card stat-low"><div class="stat-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0zM12 9v4m0 4h.01"/></svg></div><div class="stat-info"><span class="stat-label">Low Stock</span><span class="stat-value" id="stat-low-stock">0</span></div></div>
+        <div class="stat-card stat-expiry"><div class="stat-icon"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg></div><div class="stat-info"><span class="stat-label">Expiring Soon</span><span class="stat-value" id="stat-expiring">0</span></div></div>
+      </div>
+      <div class="dashboard-grid">
+        <div class="card chart-card"><h3>Sales Analytics</h3><canvas id="salesChart" height="200"></canvas><div class="chart-tabs"><button class="chip active" onclick="loadChart('daily')">Daily</button><button class="chip" onclick="loadChart('monthly')">Monthly</button><button class="chip" onclick="loadChart('yearly')">Yearly</button></div></div>
+        <div class="card"><h3>Low Stock Alerts</h3><div id="low-stock-list" class="alert-list"></div></div>
+        <div class="card"><h3>Expiring Medicines</h3><div id="expiry-list" class="alert-list"></div></div>
+        <div class="card"><h3>Recent Sales</h3><div id="recent-sales" class="alert-list"></div></div>
+      </div>
+    </section>
+
+    <!-- PAGE: SALES -->
+    <section id="page-sales" class="page">
+      <div class="sales-layout">
+        <div class="sales-form-area">
+          <div class="card">
+            <h3>New Sale</h3>
+            <div class="form-row">
+              <div class="form-group"><label>Customer Name</label><input type="text" id="sale-customer" placeholder="Walk-in Customer"></div>
+              <div class="form-group"><label>Age</label><input type="number" id="sale-age" placeholder="Age"></div>
+              <div class="form-group"><label>Mobile</label><input type="tel" id="sale-mobile" placeholder="Mobile Number"></div>
+            </div>
+            <div class="form-row">
+              <div class="form-group"><label>Bill No</label><input type="text" id="sale-billno" readonly></div>
+              <div class="form-group"><label>Bill Date</label><input type="date" id="sale-date"></div>
+            </div>
+          </div>
+          <div class="card">
+            <h3>Add Medicine</h3>
+            <div class="search-box"><input type="text" id="med-search" placeholder="Search medicine..." oninput="searchMedicine(this.value)" autocomplete="off"><div id="med-suggestions" class="suggestions hidden"></div></div>
+            <div id="medicine-grid" class="medicine-grid"></div>
+          </div>
+          <div class="card">
+            <h3>Sales History</h3>
+            <div class="table-wrap"><table id="sales-table"><thead><tr><th>Bill#</th><th>Date</th><th>Customer</th><th>Total</th><th>Payment</th><th>Actions</th></tr></thead><tbody id="sales-tbody"></tbody></table></div>
+          </div>
+        </div>
+        <!-- STICKY CART -->
+        <aside class="cart-panel" id="cart-panel">
+          <div class="cart-header"><h3>Cart</h3><span class="badge" id="cart-count">0</span></div>
+          <div class="cart-items" id="cart-items"></div>
+          <div class="cart-summary">
+            <div class="summary-row"><span>Subtotal</span><span id="cart-subtotal">₹0.00</span></div>
+            <div class="summary-row"><span>Discount</span><span id="cart-discount">-₹0.00</span></div>
+            <div class="summary-row"><span>GST</span><span id="cart-gst">₹0.00</span></div>
+            <div class="summary-row"><label>Consultation</label><input type="number" id="cart-consultation" value="0" min="0" onchange="updateCartTotal()"></div>
+            <div class="summary-row total"><span>Total</span><span id="cart-total">₹0.00</span></div>
+          </div>
+          <div class="cart-actions">
+            <button class="btn btn-cash" onclick="checkout('cash')"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><circle cx="12" cy="12" r="3"/></svg> Cash</button>
+            <button class="btn btn-upi" onclick="checkout('upi')"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg> UPI</button>
+          </div>
+          <button class="btn btn-outline btn-full" onclick="clearCart()">Clear Cart</button>
+        </aside>
+      </div>
+    </section>
+
+    <!-- PAGE: PURCHASE -->
+    <section id="page-purchase" class="page">
+      <div class="card">
+        <div class="card-header"><h3>New Purchase Entry</h3><button class="btn btn-primary btn-sm" onclick="openPurchaseModal()">+ Add Purchase</button></div>
+        <div class="table-wrap"><table id="purchase-table"><thead><tr><th>Bill#</th><th>Date</th><th>Distributor</th><th>Items</th><th>Total</th><th>Actions</th></tr></thead><tbody id="purchase-tbody"></tbody></table></div>
+      </div>
+    </section>
+
+    <!-- PAGE: INVENTORY -->
+    <section id="page-inventory" class="page">
+      <div class="card">
+        <div class="card-header"><h3>Inventory Management</h3><div class="header-actions"><button class="btn btn-primary btn-sm" onclick="openInventoryModal('add')">+ Add Stock</button><button class="btn btn-outline btn-sm" onclick="openInventoryModal('adjust')">Adjust Stock</button></div></div>
+        <div class="filter-row"><input type="text" id="inv-search" placeholder="Search inventory..." oninput="filterInventory()"><select id="inv-filter" onchange="filterInventory()"><option value="all">All</option><option value="low">Low Stock</option><option value="expiring">Expiring Soon</option></select></div>
+        <div class="table-wrap"><table id="inventory-table"><thead><tr><th>Medicine</th><th>Batch</th><th>Expiry</th><th>MRP</th><th>Stock</th><th>Status</th><th>Actions</th></tr></thead><tbody id="inventory-tbody"></tbody></table></div>
+      </div>
+    </section>
+
+    <!-- PAGE: SHORT BOOK -->
+    <section id="page-shortbook" class="page">
+      <div class="card">
+        <div class="card-header"><h3>Short Book — Reorder List</h3><button class="btn btn-primary btn-sm" onclick="generateShortBook()">Refresh</button></div>
+        <div class="table-wrap"><table id="shortbook-table"><thead><tr><th>Medicine</th><th>Current</th><th>Min</th><th>Max</th><th>Reorder Qty</th><th>Status</th><th>Actions</th></tr></thead><tbody id="shortbook-tbody"></tbody></table></div>
+      </div>
+    </section>
+
+    <!-- PAGE: REPORTS -->
+    <section id="page-reports" class="page">
+      <div class="reports-tabs"><button class="chip active" onclick="loadReport('daily')">Daily</button><button class="chip" onclick="loadReport('monthly')">Monthly</button><button class="chip" onclick="loadReport('annual')">Annual</button><button class="chip" onclick="loadReport('sales')">Sales</button><button class="chip" onclick="loadReport('inventory')">Inventory</button></div>
+      <div class="card" id="report-content"><p class="empty-state">Select a report type above</p></div>
+    </section>
+  </main>
+</div>
+
+<!-- MODALS -->
+<div id="modal-overlay" class="modal-overlay hidden" onclick="closeModal()">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-header"><h3 id="modal-title">Modal</h3><button class="btn-icon" onclick="closeModal()">&times;</button></div>
+    <div class="modal-body" id="modal-body"></div>
+    <div class="modal-footer" id="modal-footer"></div>
+  </div>
+</div>
+
+<!-- INVOICE PRINT -->
+<div id="invoice-print" class="invoice-print"></div>
+
+<script src="app.js" defer></script>
+</body>
+</html>
