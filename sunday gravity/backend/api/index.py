@@ -1,16 +1,18 @@
 """
-PharmaPOS Backend — Full Production API
+PharmaPOS Backend — Secure Production API
 """
 import os
 import json
 from http.server import BaseHTTPRequestHandler
 from urllib.parse import urlparse
 from supabase import create_client, Client
+from jose import jwt
 import traceback
 
 # --- Environment ---
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
 SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_KEY") or os.environ.get("SUPABASE_KEY", "")
+JWT_SECRET = os.environ.get("JWT_SECRET") or os.environ.get("APP_JWT_SECRET") or "pharmapos-secret-key"
 
 _supabase: Client = None
 
@@ -33,6 +35,14 @@ def get_body(handler):
     length = int(handler.headers.get("Content-Length", 0))
     return json.loads(handler.rfile.read(length)) if length else {}
 
+def verify_token(handler):
+    auth = handler.headers.get("Authorization", "")
+    if not auth.startswith("Bearer "):
+        raise ValueError("Missing Security Token. Please Login again.")
+    token = auth[7:]
+    # Verify using the secret from Supabase
+    return jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
+
 # --- Route handlers ---
 
 def handle_medicines(sb, method, path, body):
@@ -45,22 +55,13 @@ def handle_medicines(sb, method, path, body):
 def handle_inventory(sb, method, path, body):
     parts = path.rstrip("/").split("/")
     inv_id = parts[-1] if len(parts) > 3 else None
-
     if method == "POST":
         res = sb.table("inventory").insert(body).execute()
         return {"data": res.data, "success": True}
     elif method == "PUT" and inv_id:
         res = sb.table("inventory").update(body).eq("id", inv_id).execute()
         return {"data": res.data, "success": True}
-    
     res = sb.table("inventory").select("*, medicines(name)").order("expiry").execute()
-    return {"data": res.data}
-
-def handle_sales(sb, method, path, body):
-    if method == "POST":
-        res = sb.table("sales").insert(body).execute()
-        return {"data": res.data, "success": True}
-    res = sb.table("sales").select("*, items:sale_items(*)").order("created_at", desc=True).execute()
     return {"data": res.data}
 
 # --- Main Handler ---
@@ -73,24 +74,40 @@ class handler(BaseHTTPRequestHandler):
     def _handle(self, method):
         parsed = urlparse(self.path)
         path = parsed.path
+        
+        # 1. Skip auth for status check
+        if path == "/api" or path == "/api/":
+            json_response(self, {"status": "ok"})
+            return
+
+        # 2. Verify Security Token (Except for OPTIONS)
+        if method != "OPTIONS":
+            try:
+                verify_token(self)
+            except Exception as e:
+                json_response(self, {"error": "Unauthorized", "details": str(e)}, 401)
+                return
+
+        # 3. Handle Routes
         body = get_body(self) if method in ["POST", "PUT"] else {}
         sb = get_supabase()
-        
         try:
             if path.startswith("/api/medicines"):
                 result = handle_medicines(sb, method, path, body)
             elif path.startswith("/api/inventory"):
                 result = handle_inventory(sb, method, path, body)
             elif path.startswith("/api/sales"):
-                result = handle_sales(sb, method, path, body)
-            elif path.startswith("/api/purchases"):
-                res = sb.table("purchases").select("*").execute()
-                result = {"data": res.data}
-            elif path.startswith("/api/shor_tbook"):
+                if method == "POST":
+                    res = sb.table("sales").insert(body).execute()
+                    result = {"data": res.data, "success": True}
+                else:
+                    res = sb.table("sales").select("*, items:sale_items(*)").order("created_at", desc=True).execute()
+                    result = {"data": res.data}
+            elif path.startswith("/api/shortbook"):
                 res = sb.table("short_book").select("*").execute()
                 result = {"data": res.data}
             else:
-                result = {"status": "Online", "msg": "API Ready"}
+                result = {"error": "Not Found"}
             json_response(self, result)
         except Exception as e:
             json_response(self, {"error": str(e), "traceback": traceback.format_exc()}, 500)
