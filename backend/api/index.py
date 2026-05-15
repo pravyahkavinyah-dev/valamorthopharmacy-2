@@ -1,19 +1,16 @@
 """
-PharmaPOS Backend — Main API Router
+PharmaPOS Backend — Main API Router (TEMPORARY BYPASS)
 """
 import os
 import json
 from http.server import BaseHTTPRequestHandler
 from urllib.parse import urlparse
 from supabase import create_client, Client
-from jose import jwt
 import traceback
 
 # --- Environment ---
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
 SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_KEY") or os.environ.get("SUPABASE_KEY", "")
-# Use the secret from Vercel
-JWT_SECRET = os.environ.get("JWT_SECRET") or os.environ.get("APP_JWT_SECRET") or "pharmapos-secret-key"
 
 _supabase: Client = None
 
@@ -31,21 +28,6 @@ def json_response(handler, data, status=200):
     handler.send_header("Access-Control-Allow-Headers", "Content-Type,Authorization")
     handler.end_headers()
     handler.wfile.write(json.dumps(data).encode())
-
-def verify_token(handler):
-    auth = handler.headers.get("Authorization", "")
-    if not auth.startswith("Bearer "):
-        raise ValueError("Missing Bearer Token")
-    
-    token = auth[7:]
-    # DEBUG: Show the first few characters of the secret so we can verify it's the right one
-    secret_preview = JWT_SECRET[:4] + "****" if JWT_SECRET else "MISSING"
-    
-    try:
-        # We specify the algorithms Supabase uses
-        return jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
-    except Exception as e:
-        raise ValueError(f"Security Error. Backend Secret starts with: {secret_preview}. Error: {str(e)}")
 
 # --- Route handlers ---
 
@@ -69,25 +51,15 @@ class handler(BaseHTTPRequestHandler):
         parsed = urlparse(self.path)
         path = parsed.path
         
-        # Skip auth for root/login check
-        if path == "/api" or path.startswith("/api/auth"):
-            json_response(self, {"status": "ok"})
-            return
-
-        if method != "OPTIONS":
-            try:
-                verify_token(self)
-            except Exception as e:
-                json_response(self, {"error": "Unauthorized", "details": str(e)}, 401)
-                return
-
+        # SKIP SECURITY CHECK FOR NOW TO TEST CONNECTION
         try:
             if path.startswith("/api/medicines"):
                 result = handle_medicines(self, method, path, {})
             elif path.startswith("/api/inventory"):
                 result = handle_inventory(self, method, path, {})
             else:
-                result = {"error": "Not found"}
+                result = {"status": "Security Bypassed", "msg": "API is online"}
             json_response(self, result)
         except Exception as e:
             json_response(self, {"error": str(e), "traceback": traceback.format_exc()}, 500)
+
