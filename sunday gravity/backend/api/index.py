@@ -86,8 +86,8 @@ class handler(BaseHTTPRequestHandler):
             elif path.startswith("/api/purchases"):
                 res = sb.table("purchases").select("*").execute()
                 result = {"data": res.data}
-            elif path.startswith("/api/shortbook"):
-                res = sb.table("shortbook").select("*").execute()
+            elif path.startswith("/api/shor_tbook"):
+                res = sb.table("short_book").select("*").execute()
                 result = {"data": res.data}
             else:
                 result = {"status": "Online", "msg": "API Ready"}
