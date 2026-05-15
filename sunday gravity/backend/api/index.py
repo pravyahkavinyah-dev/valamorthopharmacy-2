@@ -1,5 +1,5 @@
 """
-PharmaPOS Backend — Final Working Version
+PharmaPOS Backend — Full Production API
 """
 import os
 import json
@@ -30,28 +30,37 @@ def json_response(handler, data, status=200):
     handler.wfile.write(json.dumps(data).encode())
 
 def get_body(handler):
-    """Parse JSON request body."""
     length = int(handler.headers.get("Content-Length", 0))
-    if length:
-        return json.loads(handler.rfile.read(length))
-    return {}
+    return json.loads(handler.rfile.read(length)) if length else {}
 
 # --- Route handlers ---
 
-def handle_medicines(handler, method, path, body):
-    sb = get_supabase()
+def handle_medicines(sb, method, path, body):
     if method == "POST":
         res = sb.table("medicines").insert(body).execute()
         return {"data": res.data, "success": True}
     res = sb.table("medicines").select("*").order("name").execute()
     return {"data": res.data}
 
-def handle_inventory(handler, method, path, body):
-    sb = get_supabase()
+def handle_inventory(sb, method, path, body):
+    parts = path.rstrip("/").split("/")
+    inv_id = parts[-1] if len(parts) > 3 else None
+
     if method == "POST":
         res = sb.table("inventory").insert(body).execute()
         return {"data": res.data, "success": True}
+    elif method == "PUT" and inv_id:
+        res = sb.table("inventory").update(body).eq("id", inv_id).execute()
+        return {"data": res.data, "success": True}
+    
     res = sb.table("inventory").select("*, medicines(name)").order("expiry").execute()
+    return {"data": res.data}
+
+def handle_sales(sb, method, path, body):
+    if method == "POST":
+        res = sb.table("sales").insert(body).execute()
+        return {"data": res.data, "success": True}
+    res = sb.table("sales").select("*, items:sale_items(*)").order("created_at", desc=True).execute()
     return {"data": res.data}
 
 # --- Main Handler ---
@@ -59,19 +68,29 @@ class handler(BaseHTTPRequestHandler):
     def do_OPTIONS(self): json_response(self, {}, 204)
     def do_GET(self): self._handle("GET")
     def do_POST(self): self._handle("POST")
+    def do_PUT(self): self._handle("PUT")
 
     def _handle(self, method):
         parsed = urlparse(self.path)
         path = parsed.path
-        body = get_body(self) if method == "POST" else {}
+        body = get_body(self) if method in ["POST", "PUT"] else {}
+        sb = get_supabase()
         
         try:
             if path.startswith("/api/medicines"):
-                result = handle_medicines(self, method, path, body)
+                result = handle_medicines(sb, method, path, body)
             elif path.startswith("/api/inventory"):
-                result = handle_inventory(self, method, path, body)
+                result = handle_inventory(sb, method, path, body)
+            elif path.startswith("/api/sales"):
+                result = handle_sales(sb, method, path, body)
+            elif path.startswith("/api/purchases"):
+                res = sb.table("purchases").select("*").execute()
+                result = {"data": res.data}
+            elif path.startswith("/api/shortbook"):
+                res = sb.table("shortbook").select("*").execute()
+                result = {"data": res.data}
             else:
-                result = {"status": "Online", "msg": "API is working"}
+                result = {"status": "Online", "msg": "API Ready"}
             json_response(self, result)
         except Exception as e:
             json_response(self, {"error": str(e), "traceback": traceback.format_exc()}, 500)
