@@ -44,9 +44,8 @@ def verify_token(handler):
         return None
     token = auth[7:]
     try:
-        sb = get_supabase()
-        res = sb.auth.get_user(token)
-        return res.user.model_dump() if res and res.user else None
+        # Decode using our app's JWT_SECRET
+        return jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
     except Exception:
         return None
 
