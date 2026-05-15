@@ -1,7 +1,7 @@
-fastapi==0.104.1
-uvicorn==0.24.0
-supabase==2.3.0
-python-jose[cryptography]==3.3.0
-pyotp==2.9.0
-qrcode==7.4.2
-python-dotenv==1.0.0
+fastapi
+uvicorn
+python-dotenv
+supabase
+PyJWT
+pyotp
+cryptography
