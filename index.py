@@ -53,10 +53,19 @@ def verify_token(handler):
     """Verify JWT token from Authorization header."""
     auth = handler.headers.get("Authorization", "")
     if not auth.startswith("Bearer "):
-        raise ValueError("Missing or invalid Authorization header")
+        raise ValueError("Missing or invalid Authorization header. Please log out and log in again.")
+    
     token = auth[7:]
-    # Decode using our app's JWT_SECRET
-    return jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
+    try:
+        # Decode using our app's JWT_SECRET
+        payload = jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
+        return payload
+    except jwt.ExpiredSignatureError:
+        raise ValueError("Your session has expired. Please log in again.")
+    except jwt.JWTError as e:
+        raise ValueError(f"Security key mismatch: {str(e)}. Please check your Vercel JWT_SECRET.")
+    except Exception as e:
+        raise ValueError(f"Verification failed: {str(e)}")
 
 # --- Route handlers ---
 
