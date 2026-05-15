@@ -16,9 +16,21 @@ SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "")
 SUPABASE_SERVICE_KEY = os.environ.get("SUPABASE_SERVICE_KEY", "")
 JWT_SECRET = os.environ.get("JWT_SECRET", "pharmapos-secret-key")
 
+# --- Supabase Client Management ---
+_supabase: Client = None
+
 def get_supabase() -> Client:
-    """Get Supabase client instance."""
-    return create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY or SUPABASE_KEY)
+    """Get or create a global Supabase client instance."""
+    global _supabase
+    if _supabase is None:
+        url = os.environ.get("SUPABASE_URL")
+        key = os.environ.get("SUPABASE_SERVICE_KEY") or os.environ.get("SUPABASE_KEY")
+        
+        if not url or not key:
+            raise ValueError("CRITICAL ERROR: SUPABASE_URL or SUPABASE_SERVICE_KEY is not set in Vercel environment variables.")
+        
+        _supabase = create_client(url, key)
+    return _supabase
 
 def json_response(handler, data, status=200):
     """Send JSON response."""
