@@ -320,4 +320,6 @@ class handler(BaseHTTPRequestHandler):
                 ]}
             json_response(self, result)
         except Exception as e:
-            json_response(self, {"error": str(e)}, 500)
+            import traceback
+            error_details = traceback.format_exc()
+            json_response(self, {"error": str(e), "traceback": error_details}, 500)
