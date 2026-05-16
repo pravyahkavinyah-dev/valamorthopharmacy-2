@@ -23,6 +23,16 @@ const STATE = {
   billCounter: 1
 };
 
+// --- Session Recovery ---
+window.addEventListener('load', () => {
+  const saved = localStorage.getItem('pharma_session');
+  if (saved) {
+    STATE.user = JSON.parse(saved);
+    enterApp();
+  }
+});
+
+
 // --- Toast Notifications ---
 function showToast(message, type = 'info') {
   let container = document.querySelector('.toast-container');
@@ -136,6 +146,9 @@ function verify2FA() {
 }
 
 function enterApp() {
+  if (STATE.user) {
+    localStorage.setItem('pharma_session', JSON.stringify(STATE.user));
+  }
   document.getElementById('auth-screen').classList.add('hidden');
   document.getElementById('app').classList.remove('hidden');
   initApp();
@@ -189,6 +202,7 @@ async function loadRealData() {
 }
 
 function handleLogout() {
+  localStorage.removeItem('pharma_session');
   STATE.user = null;
   STATE.cart = [];
   document.getElementById('app').classList.add('hidden');
