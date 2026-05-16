@@ -1,5 +1,5 @@
 """
-PharmaPOS Backend — Full Feature Mode
+PharmaPOS Backend — Sale Fix
 """
 import os
 import json
@@ -35,23 +35,32 @@ def get_body(handler):
 
 # --- Route handlers ---
 
-def handle_medicines(sb, method, path, body):
+def handle_sales(sb, method, path, body):
     if method == "POST":
-        res = sb.table("medicines").insert(body).execute()
+        # Separate items from the main sale data
+        items = body.pop('items', [])
+        
+        # 1. Save the main Sale
+        res = sb.table("sales").insert(body).execute()
+        if not res.data:
+            return {"error": "Failed to create sale"}
+        
+        sale_id = res.data[0]['id']
+        
+        # 2. Save each item and update stock
+        for item in items:
+            item['sale_id'] = sale_id
+            sb.table("sale_items").insert(item).execute()
+            
+            # Update inventory quantity
+            inv = sb.table("inventory").select("quantity").eq("id", item['inventory_id']).execute()
+            if inv.data:
+                new_qty = inv.data[0]['quantity'] - item['quantity']
+                sb.table("inventory").update({"quantity": new_qty}).eq("id", item['inventory_id']).execute()
+                
         return {"data": res.data, "success": True}
-    res = sb.table("medicines").select("*").order("name").execute()
-    return {"data": res.data}
-
-def handle_inventory(sb, method, path, body):
-    parts = path.rstrip("/").split("/")
-    inv_id = parts[-1] if len(parts) > 3 else None
-    if method == "POST":
-        res = sb.table("inventory").insert(body).execute()
-        return {"data": res.data, "success": True}
-    elif method == "PUT" and inv_id:
-        res = sb.table("inventory").update(body).eq("id", inv_id).execute()
-        return {"data": res.data, "success": True}
-    res = sb.table("inventory").select("*, medicines(name)").order("expiry").execute()
+    
+    res = sb.table("sales").select("*, items:sale_items(*)").order("created_at", desc=True).execute()
     return {"data": res.data}
 
 # --- Main Handler ---
@@ -69,21 +78,24 @@ class handler(BaseHTTPRequestHandler):
         
         try:
             if path.startswith("/api/medicines"):
-                result = handle_medicines(sb, method, path, body)
+                res = sb.table("medicines").insert(body).execute() if method == "POST" else sb.table("medicines").select("*").order("name").execute()
+                result = {"data": res.data, "success": True}
             elif path.startswith("/api/inventory"):
-                result = handle_inventory(sb, method, path, body)
-            elif path.startswith("/api/sales"):
-                if method == "POST":
-                    res = sb.table("sales").insert(body).execute()
-                    result = {"data": res.data, "success": True}
+                if method == "PUT":
+                    parts = path.rstrip("/").split("/")
+                    res = sb.table("inventory").update(body).eq("id", parts[-1]).execute()
+                elif method == "POST":
+                    res = sb.table("inventory").insert(body).execute()
                 else:
-                    res = sb.table("sales").select("*, items:sale_items(*)").order("created_at", desc=True).execute()
-                    result = {"data": res.data}
+                    res = sb.table("inventory").select("*, medicines(name)").order("expiry").execute()
+                result = {"data": res.data, "success": True}
+            elif path.startswith("/api/sales"):
+                result = handle_sales(sb, method, path, body)
             elif path.startswith("/api/shortbook"):
                 res = sb.table("short_book").select("*").execute()
                 result = {"data": res.data}
             else:
-                result = {"status": "Online", "msg": "API is open and ready"}
+                result = {"status": "Online"}
             json_response(self, result)
         except Exception as e:
             json_response(self, {"error": str(e), "traceback": traceback.format_exc()}, 500)
